@@ -1656,13 +1656,6 @@ impl Node {
             }
         }
 
-        fn fire_observer_if_necessary(node: &Node, suppress_observers: SuppressObserver) {
-            match suppress_observers {
-                SuppressObserver::Unsuppressed => node.node_inserted(),
-                SuppressObserver::Suppressed => ()
-            }
-        }
-
         // XXX assert owner_doc
         // Step 1-3: ranges.
 
@@ -1683,7 +1676,7 @@ impl Node {
                 }
 
                 for kid in kids {
-                    fire_observer_if_necessary(kid.r(), suppress_observers);
+                    kid.r().node_inserted();
                 }
             }
             _ => {
@@ -1694,7 +1687,7 @@ impl Node {
                 // Step 8.
                 do_insert(node, parent, child);
                 // Step 9.
-                fire_observer_if_necessary(node, suppress_observers);
+                node.node_inserted();
             }
         }
     }
@@ -1738,14 +1731,6 @@ impl Node {
 
         // Step 6: mutation records.
 
-        // Step 7.
-        let parent_in_doc = parent.is_in_doc();
-        for removed_node in removed_nodes.iter() {
-            removed_node.root().r().node_removed(parent_in_doc);
-        }
-        for added_node in added_nodes {
-            added_node.r().node_inserted();
-        }
     }
 
     // https://dom.spec.whatwg.org/#concept-node-pre-remove
@@ -2303,10 +2288,6 @@ impl<'a> NodeMethods for &'a Node {
         }
 
         // Step 13: mutation records.
-        child.node_removed(self.is_in_doc());
-        for child_node in &*nodes {
-            child_node.root().r().node_inserted();
-        }
 
         // Step 14.
         Ok(Root::from_ref(child))
